@@ -1,4 +1,4 @@
-use consts::{CACHE_DIR, INTRODUCTION};
+use consts::{CACHE_DIR, CONFIG, INTRODUCTION};
 use flume::{Receiver, Sender};
 use log::{error, info};
 use once_cell::sync::Lazy;
@@ -216,6 +216,26 @@ async fn app_start_main(updater_r: Receiver<ManagerMessage>, updater_s: Sender<M
     STARTUP_TIME.log("Init");
 
     std::fs::create_dir_all(CACHE_DIR.join("downloads")).unwrap();
+
+    if CONFIG.global.downloader == crate::config::DownloaderConfig::Ytdlp {
+        match std::process::Command::new("yt-dlp")
+            .arg("--version")
+            .output()
+        {
+            Ok(out) if out.status.success() => {
+                info!(
+                    "yt-dlp found: {}",
+                    String::from_utf8_lossy(&out.stdout).trim()
+                );
+            }
+            _ => {
+                println!("yt-dlp not found in PATH");
+                println!("get it at https://github.com/yt-dlp/yt-dlp or set downloader = \"rusty_ytdl\" in config");
+                std::io::stdin().read_line(&mut String::new()).unwrap();
+                return;
+            }
+        }
+    }
 
     if try_get_cookies().is_none() {
         if let Err((error, filepath)) = get_header_file() {

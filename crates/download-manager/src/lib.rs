@@ -19,10 +19,18 @@ pub enum DownloadManagerMessage {
     VideoStatusUpdate(String, MusicDownloadStatus),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Downloader {
+    YtDlp,
+    #[cfg(feature = "rusty-ytdl-backend")]
+    RustyYtdl,
+}
+
 pub struct DownloadManager {
     database: &'static YTLocalDatabase,
     cache_dir: PathBuf,
     parallel_downloads: u16,
+    pub downloader: Downloader,
     handles: Mutex<Vec<JoinHandle<()>>>,
     download_list: Mutex<VecDeque<YoutubeMusicVideoRef>>,
     in_download: Mutex<HashSet<String>>,
@@ -33,11 +41,13 @@ impl DownloadManager {
         cache_dir: PathBuf,
         database: &'static YTLocalDatabase,
         parallel_downloads: u16,
+        downloader: Downloader,
     ) -> Self {
         Self {
             database,
             cache_dir,
             parallel_downloads,
+            downloader,
             handles: Mutex::new(Vec::new()),
             download_list: Mutex::new(VecDeque::new()),
             in_download: Mutex::new(HashSet::new()),

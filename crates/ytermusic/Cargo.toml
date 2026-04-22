@@ -53,6 +53,9 @@ rookie = "0.5.2"
 
 ctrlc = "3.5.0"
 
+[features]
+rusty-ytdl-backend = ["download-manager/rusty-ytdl-backend"]
+
 [target."cfg(target_os = \"windows\")".dependencies]
 raw-window-handle = "0.4.3"
 winit = "0.26.1"
