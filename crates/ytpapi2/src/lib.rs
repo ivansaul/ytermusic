@@ -120,6 +120,7 @@ pub struct YoutubeMusicInstance {
     client_version: String,
     cookies: String,
     account_id: Option<String>,
+    client: reqwest::Client,
 }
 
 impl YoutubeMusicInstance {
@@ -229,6 +230,7 @@ impl YoutubeMusicInstance {
             client_version: client_version.to_string(),
             cookies,
             account_id,
+            client: rest_client,
         })
     }
     fn compute_sapi_hash(&self) -> String {
@@ -294,7 +296,7 @@ impl YoutubeMusicInstance {
                 self.client_version
             ),
         };
-        reqwest::Client::new()
+        self.client
             .post(&url)
             .header("Content-Type", "application/json")
             .header(
@@ -332,7 +334,7 @@ impl YoutubeMusicInstance {
                 self.client_version
             ),
         };
-        reqwest::Client::new()
+        self.client
             .post(&url)
             .header("Content-Type", "application/json")
             .header(

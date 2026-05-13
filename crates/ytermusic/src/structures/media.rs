@@ -211,6 +211,8 @@ pub fn run_window_handler(updater: &Sender<ManagerMessage>) -> Option<()> {
             info!("event loop closed");
             *ctrl_flow = winit::event_loop::ControlFlow::Exit;
             exit(0);
+        } else {
+            *ctrl_flow = winit::event_loop::ControlFlow::Wait;
         }
     });
 }

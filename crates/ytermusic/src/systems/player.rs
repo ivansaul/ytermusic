@@ -32,6 +32,7 @@ pub struct PlayerState {
     pub soundaction_sender: Sender<SoundAction>,
     pub soundaction_receiver: Receiver<SoundAction>,
     pub stream_error_receiver: Receiver<PlayError>,
+    last_download_list: Vec<String>,
 }
 
 impl PlayerState {
@@ -63,6 +64,7 @@ impl PlayerState {
             list: Vec::new(),
             current: 0,
             rtcurrent: None,
+            last_download_list: Vec::new(),
         }
     }
 
@@ -175,7 +177,11 @@ impl PlayerState {
             .take(12)
             .cloned()
             .collect::<VecDeque<_>>();
-        DOWNLOAD_MANAGER.set_download_list(to_download);
+        let new_ids: Vec<String> = to_download.iter().map(|v| v.video_id.clone()).collect();
+        if new_ids != self.last_download_list {
+            self.last_download_list = new_ids;
+            DOWNLOAD_MANAGER.set_download_list(to_download);
+        }
     }
 
     fn handle_stream_errors(&self) {

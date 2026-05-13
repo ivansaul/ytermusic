@@ -4,11 +4,10 @@ use std::{
     collections::{HashSet, VecDeque},
     path::PathBuf,
     sync::{Arc, Mutex},
-    time::Duration,
 };
 
 use database::YTLocalDatabase;
-use tokio::{select, task::JoinHandle, time::sleep};
+use tokio::{select, sync::Notify, task::JoinHandle};
 use ytpapi2::YoutubeMusicVideoRef;
 
 use common_structs::MusicDownloadStatus;
@@ -34,6 +33,7 @@ pub struct DownloadManager {
     handles: Mutex<Vec<JoinHandle<()>>>,
     download_list: Mutex<VecDeque<YoutubeMusicVideoRef>>,
     in_download: Mutex<HashSet<String>>,
+    notify: Notify,
 }
 
 impl DownloadManager {
@@ -51,6 +51,7 @@ impl DownloadManager {
             handles: Mutex::new(Vec::new()),
             download_list: Mutex::new(VecDeque::new()),
             in_download: Mutex::new(HashSet::new()),
+            notify: Notify::new(),
         }
     }
 
@@ -76,7 +77,7 @@ impl DownloadManager {
                 if let Some(id) = self.take() {
                     self.start_download(id, sender.clone()).await;
                 } else {
-                    sleep(Duration::from_millis(200)).await;
+                    self.notify.notified().await;
                 }
             }
         };
@@ -120,10 +121,17 @@ impl DownloadManager {
         let mut list = self.download_list.lock().unwrap();
         list.clear();
         list.extend(to_add);
+        drop(list);
+        self.notify.notify_one();
     }
 
     pub fn add_to_download_list(&self, to_add: impl IntoIterator<Item = YoutubeMusicVideoRef>) {
         let mut list = self.download_list.lock().unwrap();
+        let was_empty = list.is_empty();
         list.extend(to_add);
+        drop(list);
+        if was_empty {
+            self.notify.notify_one();
+        }
     }
 }

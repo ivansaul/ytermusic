@@ -2,12 +2,11 @@ use std::{
     future::Future,
     pin::Pin,
     sync::atomic::{AtomicBool, Ordering},
-    task::{Context, Poll},
+    sync::{Condvar, Mutex},
+    task::{Context, Poll, Waker},
 };
 
 use log::info;
-
-use std::sync::{Condvar, Mutex};
 
 pub struct SharedEvent {
     lock: Mutex<bool>,
@@ -48,6 +47,7 @@ pub fn block_until_shutdown() {
 }
 
 static SHUTDOWN_SENT: AtomicBool = AtomicBool::new(false);
+static WAKERS: Mutex<Vec<Waker>> = Mutex::new(Vec::new());
 
 pub fn is_shutdown_sent() -> bool {
     SHUTDOWN_SENT.load(Ordering::Relaxed)
@@ -59,10 +59,15 @@ pub struct ShutdownSignal;
 impl Future for ShutdownSignal {
     type Output = ();
 
-    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if SHUTDOWN_SENT.load(Ordering::Relaxed) {
             Poll::Ready(())
         } else {
+            let waker = cx.waker().clone();
+            let mut wakers = WAKERS.lock().unwrap();
+            if !wakers.iter().any(|w| w.will_wake(&waker)) {
+                wakers.push(waker);
+            }
             Poll::Pending
         }
     }
@@ -70,6 +75,11 @@ impl Future for ShutdownSignal {
 
 pub fn shutdown() {
     SHUTDOWN_SENT.store(true, Ordering::Relaxed);
+    let mut wakers = WAKERS.lock().unwrap();
+    for waker in wakers.drain(..) {
+        waker.wake();
+    }
+    drop(wakers);
     SHUTDOWN_WAKER.notify();
     info!("Shutdown signal sent, waiting for shutdown");
 }
