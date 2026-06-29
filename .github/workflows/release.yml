@@ -85,4 +85,5 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: ytermusic-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.archive }}
+          tag_name: ${{ github.ref_name }}
           token: ${{ secrets.TOKEN_GITHUB }}
