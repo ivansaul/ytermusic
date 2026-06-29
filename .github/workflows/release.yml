@@ -82,11 +82,7 @@ jobs:
           }
 
       - name: Upload release asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+        uses: softprops/action-gh-release@v3
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ytermusic-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.archive }}
-          asset_name: ytermusic-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.archive }}
-          asset_content_type: application/octet-stream
+          files: ytermusic-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.archive }}
+          token: ${{ secrets.TOKEN_GITHUB }}
